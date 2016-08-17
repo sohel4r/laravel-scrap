@@ -16,10 +16,10 @@ Route::get('/', function () {
 });
 
 Route::controller('data', "DataController");
-Route::controller('test', "TestController");
-Route::get('tor', 'ScraperController@torNew');
-Route::get('craiglist', 'ScraperController@craiglist');
-Route::controller('scrap','ScraperController');
-Route::controller('tor','TorController');
+// Route::controller('test', "TestController");
+// Route::get('tor', 'ScraperController@torNew');
+// Route::get('craiglist', 'ScraperController@craiglist');
+// Route::controller('scrap','ScraperController');
+// Route::controller('tor','TorController');
 
-Route::get('/deploy', 'Server@deploy');
+// Route::get('/deploy', 'Server@deploy');

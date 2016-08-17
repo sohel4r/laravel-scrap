@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests;
 use App\Lead;
-use App\Link;
-use App\Proxy;
 use App\Url;
 use Goutte\Client;
 use Illuminate\Http\Request;
@@ -57,15 +55,14 @@ class DataController extends Controller
 
 		$requesturl = $request->get('url');
 		$url = Url::where('name', $requesturl)->firstOrFail();
-		if($url->links()->count() > 0){
-			return redirect()->back()->with('message', 'You already do it !! . Try with new url :)');
-		}
+
 		$this->urlId = $url->id;
 
 		$crawler = $this->helper_crawler($url->name);
 
-
 		$isBlock = $crawler->filter('p')->text();
+
+		//dd($crawler->html());
 
 		if(strpos($isBlock,'blocked') != false ) {
 			echo "Your ip is blocked. Please try again later";
@@ -73,12 +70,15 @@ class DataController extends Controller
 
 		} else {
 
-				$data = $crawler->filterXpath("//span[@class='rows']/p/a[@class='i']");
-				$data->each(function ($node){
+				$data = $crawler->filterXpath("//div[@class='rows']");
+				$data->filter('p > a')->each(function ($node){
 					$url = $node->attr('href');
+
 					if( ! preg_match("/\/\/.+/", $url)) {
 
-						Url::find($this->urlId)->links()->create(['name'=>$url]);
+						
+						$this->getInfo($url);
+
 					}
 				});	
 		}
@@ -111,16 +111,17 @@ class DataController extends Controller
 	 * @return Get user data from craglist
 	 */
 
-	public function getInfo($url)
+	public function getInfo($link)
 	{
-		$link = Link::findOrfail($url);
-		if($link) {
-			$ul = parse_url($link->url->name);
-			$url = 'http://'.$ul['host'].$link->name;
+		//Get the url name
+		$url = Url::findOrfail($this->urlId);
+
+		if($url) {
+			$ul = parse_url($url->name);
+			$links = 'http://'.$ul['host'].$link;
 		}
 
-
-		$crawler = $this->helper_crawler($url);
+		$crawler = $this->helper_crawler($links);
 
 
 		$isBlock = $crawler->filter('p')->text();
@@ -176,7 +177,7 @@ class DataController extends Controller
 		    		$mobile = str_replace("tel:", '', $mb);
 		    	}
 		    	
-				$link->lead()->create(['title'=> $this->title,'email'=>$email, 'name'=> $name, 'phone' => $mobile, 'mapLocation' => $this->mapLocation, 'body' => $this->body]);
+				$url->leads()->create(['link'=> $link, 'title'=> $this->title,'email'=>$email, 'name'=> $name, 'phone' => $mobile, 'mapLocation' => $this->mapLocation, 'body' => $this->body]);
 
 			}
 			
@@ -197,43 +198,6 @@ class DataController extends Controller
 		return view('app.data-list', compact('leads'));
 	}
 
-	public function proxylist()
-	{
-		// $file = file(url('proxylist.txt'));
-
-		// return $file[array_rand($file)];
-		$row = Proxy::orderByRaw("RAND()")->first();
-		if(count($row) > 0 )		
-			return $row->ip.':'.$row->port;
-		else 
-			return false;
-	}
-
-	public function getProxy()
-	{
-		$proxys = Proxy::all();
-		return view('app.proxy', compact('proxys'));
-	}
-
-	/**
-	 * @return Collect latest 80 proxy list and insert it to database
-	 */
-	public function getProxylist()
-	{
-
-		$client = new Client();	
-		$crawler = $client->request('GET', 'https://www.socks-proxy.net');
-
-		$data = $crawler->filter('tbody tr')->each(function ($node) {
-				$ip = $node->filter('td')->eq(0)->text();
-				$port = $node->filter('td')->eq(1)->text();
-
-				if(! Proxy::where('ip', $ip)->first() )
-				Proxy::create(['ip' => $ip, 'port' => $port ]);
-			});
-
-		return redirect()->back()->with('message', 'Proxy List was updated');
-	}
 
 	/**
 	 * @return all data of that url
@@ -249,40 +213,4 @@ class DataController extends Controller
 		return  $client->request('GET', $url );			
 	}	
 
-
-	public function getTest()
-	{
-		$agent= 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36';
-		$Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
-		
-		$client = new Client(['HTTP_USER_AGENT' => $agent]);		
-		$crawler = $client->request('GET', 'http://localhost/test.html' );	
-    	// if($crawler->filterXPath('//div[@class="mapAndAttrs"]')->count()) {
-    	// 	$mapLocation = $crawler->filterXPath('//div[@class="mapAndAttrs"]')->html();
-    	// 	dd($mapLocation);
-    	// }
-
-    	// if($crawler->filterXPath('//section[@id="postingbody"]')->count()) {
-    	// 	$body = $crawler->filterXPath('//section[@id="postingbody"]')->html();
-    	// 	dd($body);
-				$name = $email = $mobile =  "";
-				
-				if($crawler->filterXPath('//ul[not(@class)]/li[not(div)]')->count()){
-					$name = $crawler->filterXPath('//ul[not(@class)]/li[not(div)]')->text();
-				}
-		    	
-		    	if($crawler->filterXPath('//ul/li/a[@class="mailapp"]')->count()) {
-		    		$email = $crawler->filterXPath('//ul/li/a[@class="mailapp"]')->text();
-		    	}
-		    	
-		    	if($crawler->filterXPath('//a[@class="mobile-only replytellink"]')->count()){
-		    		$mb = $crawler->filterXPath('//a[@class="mobile-only replytellink"]')->attr('href');
-		    		$mobile = str_replace("tel:", '', $mb);
-		    	}
-
-		    	echo "Name: ". $name ." Email: ". $email. " Mobile: ". $mobile;
-
-
-    	
-	}
 }
