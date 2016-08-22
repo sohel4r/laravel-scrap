@@ -11,9 +11,9 @@
 |
 */
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
+Route::get('/', function () {
+    return view('welcome');
+});
 
 Route::controller('data', "DataController");
 // Route::controller('test', "TestController");
@@ -26,7 +26,7 @@ Route::controller('data', "DataController");
 
 
 // Authentication routes...
-Route::get('/', 'Auth\AuthController@getLogin');
+Route::get('auth/login', 'Auth\AuthController@getLogin');
 Route::post('auth/login', 'Auth\AuthController@postLogin');
 Route::get('auth/logout', 'Auth\AuthController@getLogout');
 
