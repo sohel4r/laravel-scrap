@@ -16,6 +16,16 @@ class DataController extends Controller
     public $mapLocation;
     public $body;
 
+    /**
+	 * @return check authentication
+	 */
+
+    public function __construct()
+	{
+	    $this->middleware('auth');
+	}
+
+
 	public function getIndex()
 	{
 		return view("app/index");
