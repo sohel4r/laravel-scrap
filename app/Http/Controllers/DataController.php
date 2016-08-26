@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests;
-use App\Lead;
+use Excel;
 use App\Url;
+use Session;
+use App\Lead;
 use Goutte\Client;
+use App\Http\Requests;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Redirect;
 
 class DataController extends Controller
 {
@@ -29,7 +32,6 @@ class DataController extends Controller
 	public function getUrls()
 	{
 		$urls = Url::all();
-
 		return view("app/urls", compact('urls'));		
 	}
 	/**
@@ -43,22 +45,12 @@ class DataController extends Controller
 	    ]);		
 		$url = Url::create($request->all());
 		
-		return redirect()->back()->with('message',"Link insert was successfull");
-	}
+		$requesturl = $request->input('name');
+		$scrapedurl = Url::where('name', $requesturl)->firstOrFail();
 
-	/**
-	 * @return get all assosiative link form this url and insert all url
-	 * to database
-	 */
+		$this->urlId = $scrapedurl->id;
 
-	public function getGeturl(Request $request){
-
-		$requesturl = $request->get('url');
-		$url = Url::where('name', $requesturl)->firstOrFail();
-
-		$this->urlId = $url->id;
-
-		$crawler = $this->helper_crawler($url->name);
+		$crawler = $this->helper_crawler($scrapedurl->name);
 
 		$isBlock = $crawler->filter('p')->text();
 
@@ -72,19 +64,78 @@ class DataController extends Controller
 
 				$data = $crawler->filterXpath("//div[@class='rows']");
 				$data->filter('p > a')->each(function ($node){
-					$url = $node->attr('href');
+					$scrapedurl = $node->attr('href');
 
-					if( ! preg_match("/\/\/.+/", $url)) {
+					if( ! preg_match("/\/\/.+/", $scrapedurl)) {
 
 						
-						$this->getInfo($url);
+						$this->getInfo($scrapedurl);
 
 					}
 				});	
 		}
-
+		$leads = Lead::all();
+		Session::flash('leads', $leads);
 		return redirect()->back()->with('message', "Link was scraped please view link");
+	}
 
+	/**
+	 * @return get all assosiative link form this url and insert all url
+	 * to database
+	 */
+
+	public function getGeturl(Request $request)
+	{	
+		// go up
+	}
+
+	public function scrapedDataDownload(Request $request)
+	{	
+		$downloadFor = $request->input('filefor');
+		
+		if ($downloadFor == "all")
+		{
+			$logs = Lead::select('email as Email_Address', 'phone as Phone_Number', 'name as Name', 'title as Title')
+                            ->get();
+		}
+		elseif ($downloadFor == "email")
+		{
+			$logs = Lead::select('email as Email_Address')
+                            ->get();
+		}
+		elseif ($downloadFor == "phone")
+		{
+			$logs = Lead::select('phone as Phone_Number')
+                            ->get();
+		}
+		elseif ($downloadFor == "name")
+		{
+			$logs = Lead::select('name as Name')
+                            ->get();
+		}
+		elseif ($downloadFor == "title")
+		{
+			$logs = Lead::select('title as Title')
+                            ->get();
+		}
+		else
+		{
+			return redirect()->back()->with('message', "This download link is broken, please try again later");
+		}
+
+        Excel::create('ScrapedData', function($excel) use($logs,$downloadFor)
+        {
+            $excel->sheet('Sheet 1', function($sheet) use($logs,$downloadFor)
+            {
+                $sheet->fromArray($logs);
+
+                $sheet->prependRow(1, array(
+                    'Report For : '.date("Y-M-d")
+                ));
+                
+                $sheet->mergeCells('A1:D1');
+            });
+        })->export('xls');
 	}
 
 	/**

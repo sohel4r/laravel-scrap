@@ -1,13 +1,19 @@
 @extends('app/master')
 
 @section('body')
+
+	@if(Session::has('message'))
+	    <div class="alert alert-success">
+	        <p>{{ Session::get('message') }}</p>
+	    </div>
+	@endif
 	
 	<table class="table">
 			<tr>
-				<th>Email</th>
-				<td>Phone</td>
-				<td>Name</td>
-				<td>Title</td>
+				<th><center><a href="{{url('data/scrapedDataDownload?filefor=email')}}"><abbr title="Download Scraped Email Data">Email</abbr></a></center></th>
+				<th><center><a href="{{url('data/scrapedDataDownload?filefor=phone')}}"><abbr title="Download Scraped Phone Data">Phone</abbr></a></center></th>
+				<th><center><a href="{{url('data/scrapedDataDownload?filefor=name')}}"><abbr title="Download Scraped Name Data">Name</abbr></a></center></th>
+				<th><center><a href="{{url('data/scrapedDataDownload?filefor=title')}}"><abbr title="Download Scraped Title Data">Title</abbr></a></center></th>
 			</tr>
 		@forelse( $leads as $lead )
 			<tr>
@@ -22,5 +28,9 @@
 			</tr>
 		@endforelse
 	</table>
+
+	<div class="well">
+        <a class="btn btn-default btn-lg btn-block" href="{{url('data/scrapedDataDownload?filefor=all')}}">Download Scraped Data</a>
+    </div>
 
 @stop
