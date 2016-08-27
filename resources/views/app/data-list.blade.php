@@ -8,21 +8,32 @@
 	    </div>
 	@endif
 	
-	<table class="table">
-			<!-- <tr>
-				<th><center><a href="{{url('data/scrapedDataDownload?filefor=email')}}"><abbr title="Download Scraped Email Data">Email</abbr></a></center></th>
-				<th><center><a href="{{url('data/scrapedDataDownload?filefor=phone')}}"><abbr title="Download Scraped Phone Data">Phone</abbr></a></center></th>
-				<th><center><a href="{{url('data/scrapedDataDownload?filefor=name')}}"><abbr title="Download Scraped Name Data">Name</abbr></a></center></th>
-				<th><center><a href="{{url('data/scrapedDataDownload?filefor=title')}}"><abbr title="Download Scraped Title Data">Title</abbr></a></center></th>
-			</tr> -->
-			{!! Form::open(array('url' => 'data/scrapedDataDownload', 'method' => 'post')) !!}
+	{!! Form::open(array('url' => 'data/scrapedDataDownload', 'method' => 'POST')) !!}
+		<table class="table">
 			<tr>
-				<th><center><input type="checkbox" name="fileforp[]" value="email">	Email 	</center></th>
-				<th><center><input type="checkbox" name="fileforp[]" value="phone">	phone 	</center></th>
-				<th><center><input type="checkbox" name="fileforp[]" value="name">	Name 	</center></th>
-				<th><center><input type="checkbox" name="fileforp[]" value="title">	Title 	</center></th>
+				<td colspan="2">
+				<div class="form-group">
+					<select name="url" class="form-control view-link">
+						<option value="0">Please Select A Url</option>
+						@forelse($urls as $url)
+						<option value="{{ $url->id }}">{{ $url->name }}</option>
+						@empty
+							<option value="0">No url found</option>
+						@endforelse
+					</select>
+				</div>
+				</td>
+				<td></td>
+				<td align="center"><button type="submit" class="btn btn-success">Download Scraped Data</button></td>
 			</tr>
-			
+			<tr>
+				<th><input type="checkbox" name="fileforp[]" value="email">	Email 	</th>
+				<th><input type="checkbox" name="fileforp[]" value="phone">	phone 	</th>
+				<th><input type="checkbox" name="fileforp[]" value="name">	Name 	</th>
+				<th><input type="checkbox" name="fileforp[]" value="title">	Title 	</th>
+			</tr>
+		</table>
+		<table class="table link-list">
 			@forelse( $leads as $lead )
 				<tr>
 					<td>{{ $lead->email }}</td>
@@ -35,15 +46,6 @@
 					<td colspan="4"><h2>No Data Found</h2></td>
 				</tr>
 			@endforelse
-
-			<tr>
-				<td colspan="4">					
-					<button type="submit" class="btn btn-default btn-lg btn-block">Download Scraped Data</button>
-				</td>
-			</tr>
-
-			{!! Form::close() !!}
-			
-	</table>
-
+		</table>
+	{!! Form::close() !!}
 @stop

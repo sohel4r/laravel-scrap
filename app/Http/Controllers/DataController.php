@@ -92,6 +92,7 @@ class DataController extends Controller
 
 	public function scrapedDataDownload(Request $request)
 	{	
+		$urlId = $request->input('url');
         $count = count($request->input('fileforp'));
 		$start = 'select ';
 		$end   = 'from leads';
@@ -148,24 +149,34 @@ class DataController extends Controller
 		{
 			return redirect()->back()->with('message', "To download, please select something from the options");
 		}
-
 		$result = $email.' '.$phone.' '.$name.' '.$title;
 
-		$logs = Lead::select(DB::raw($result))->get();
+		if($urlId > 0){
+			$logs = Lead::select(DB::raw($result))->where('url_id','=',$urlId)->get();
+		}else{
+			$logs = Lead::select(DB::raw($result))->get();
+		}
+		
+		if($logs->count()){
 
-        Excel::create('ScrapedData', function($excel) use($logs)
-        {
-            $excel->sheet('Sheet 1', function($sheet) use($logs)
-            {
-                $sheet->fromArray($logs);
+	        Excel::create('ScrapedData', function($excel) use($logs)
+	        {
+	            $excel->sheet('Sheet 1', function($sheet) use($logs)
+	            {
+	                $sheet->fromArray($logs);
 
-                $sheet->prependRow(1, array(
-                    'Report For : '.date("Y-M-d")
-                ));
-                
-                $sheet->mergeCells('A1:D1');
-            });
-        })->export('xls');
+	                $sheet->prependRow(1, array(
+	                    'Report For : '.date("Y-M-d")
+	                ));
+	                
+	                $sheet->mergeCells('A1:D1');
+	            });
+	        })->export('xls');
+    	}else{
+
+    		return redirect()->back()->with('message', "To download, please select some data");
+    	}
+
 	}
 
 	/**
@@ -183,7 +194,7 @@ class DataController extends Controller
 	public function getLinks($url)
 	{
 
-		$url = Url::findOrfail($url);
+		$url = Lead::where('url_id', '=', $url)->get();
 		
 		return view('app.links', compact('url'));
 	}
@@ -275,11 +286,19 @@ class DataController extends Controller
 
 	public function getInfolist()
 	{
+		$urls = Url::all();
+
 		$leads = Lead::all();
-		return view('app.data-list', compact('leads'));
+		return view('app.data-list', compact('urls','leads'));
 	}
 
 
+	public function getUrllinks($urlId){
+
+		$leads = Lead::where('url_id', '=', $urlId)->get();
+		
+		return view('app.ajax-link-list', compact('leads'));
+	}
 	/**
 	 * @return all data of that url
 	 */
