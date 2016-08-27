@@ -24,36 +24,34 @@
 			<label for="name">Url:</label>
 			<input type="text" name="name" id="name" class="form-control" value="{{ old('name') }}">
 		</div>
-
-		<div class="form-group">
-			<center>
-				<button type="submit" class="btn btn-default">Scrap Url</button>
-			</center>
+		<div class="checkbox">
+		  	<label><input type="checkbox" name="chkoption[]" id="chkoption" value="emailChk" checked>Email</label>
 		</div>
+		<div class="checkbox">
+		  	<label><input type="checkbox" name="chkoption[]" id="chkoption" value="nameChk">Name</label>
+		</div>
+		<div class="checkbox">
+		  	<label><input type="checkbox" name="chkoption[]" id="chkoption" value="phoneChk">Phone No</label>
+		</div>
+		<div class="form-group">
+			<button type="submit" class="btn btn-default">Scrap</button>
+		</div>
+
 	{!! Form::close() !!}
 	
-	@if(Session::has('leads'))
-	    <table class="table">
-			<tr>
-				<th>Email</th>
-				<td>Phone</td>
-				<td>Name</td>
-				<td>Title</td>
-			</tr>
-			@forelse( Session::get('leads') as $lead )
-				<tr>
-					<td>{{ $lead->email }}</td>
-					<td>{{ $lead->phone }}</td>
-					<td>{{ $lead->name }}</td>
-					<td>{{ $lead->title }}</td>
-				</tr>
-			@empty
-				<tr>
-					<td colspan="4"><h2>No Data Found</h2></td>
-				</tr>
-			@endforelse
-		</table>
-	@endif
-
-
+	@forelse($urls as $url)
+		<li>{{ $url->name }} 
+		<!-- <a href="{{ url('data/geturl').'?url='.$url->name }}">Scrap</a> -->
+		 
+		<!-- <a href="{{ url('data/links', $url->id) }}">View All Links</a> -->
+		<a href="#" id="{{ $url->id }}" class="view-link">View Scrap Data</a>
+		</li>
+		<li>
+			<div class="link-list{{ $url->id }}">
+				
+			</div>
+		</li>
+	@empty
+		<h2>No Url Found</h2>
+	@endforelse
 @stop

@@ -2,16 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use DB;
-use Excel;
-use App\Url;
-use Session;
-use App\Lead;
-use Goutte\Client;
-use App\Http\Requests;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Redirect;
+use App\Http\Requests;
+use App\Lead;
+use App\Url;
+use Goutte\Client;
+use Illuminate\Http\Request;
 
 class DataController extends Controller
 {
@@ -20,11 +16,20 @@ class DataController extends Controller
     public $mapLocation;
     public $body;
 
+    /**
+	 * @return check authentication
+	 */
+
+    public function __construct()
+	{
+	    $this->middleware('auth');
+	}
+
+
 	public function getIndex()
 	{
 		return view("app/index");
 	}
-
 
 	/**
 	 * @return view data and add url
@@ -33,6 +38,7 @@ class DataController extends Controller
 	public function getUrls()
 	{
 		$urls = Url::all();
+
 		return view("app/urls", compact('urls'));		
 	}
 	/**
@@ -42,19 +48,33 @@ class DataController extends Controller
 	public function postUrl(Request $request){
 
 	    $this->validate($request, [
-	        'name' => 'required|unique:urls|max:255',
-	    ]);		
-		$url = Url::create($request->all());
+	        'name' => 'required|unique:urls|max:255'
+	    ]);	
+
+		$url = Url::create([
+			'name' => $request->name,
+			'chkoption' => serialize($request->chkoption)
+			]);
 		
-		$requesturl = $request->input('name');
-		$scrapedurl = Url::where('name', $requesturl)->firstOrFail();
+		$this->getGeturl($request->name);
 
-		$this->urlId = $scrapedurl->id;
+		return redirect()->back()->with('message',"Link was scraped please view Scrap Data");
+	}
 
-		$crawler = $this->helper_crawler($scrapedurl->name);
+	/**
+	 * @return get all assosiative link form this url and insert all url
+	 * to database
+	 */
 
+	public function getGeturl($requesturl){
+
+		$url = Url::where('name', $requesturl)->firstOrFail();
+
+		$this->urlId = $url->id;
+
+		$crawler = $this->helper_crawler($url->name);
+		
 		$isBlock = $crawler->filter('p')->text();
-
 		//dd($crawler->html());
 
 		if(strpos($isBlock,'blocked') != false ) {
@@ -65,107 +85,19 @@ class DataController extends Controller
 
 				$data = $crawler->filterXpath("//div[@class='rows']");
 				$data->filter('p > a')->each(function ($node){
-					$scrapedurl = $node->attr('href');
+					$url = $node->attr('href');
 
-					if( ! preg_match("/\/\/.+/", $scrapedurl)) {
+					if( ! preg_match("/\/\/.+/", $url)) {
 
 						
-						$this->getInfo($scrapedurl);
+						$this->getInfo($url);
 
 					}
 				});	
 		}
-		$leads = Lead::all();
-		Session::flash('leads', $leads);
+
 		return redirect()->back()->with('message', "Link was scraped please view link");
-	}
 
-	/**
-	 * @return get all assosiative link form this url and insert all url
-	 * to database
-	 */
-
-	public function getGeturl(Request $request)
-	{	
-		// go up
-	}
-
-	public function scrapedDataDownload(Request $request)
-	{	
-        $count = count($request->input('fileforp'));
-		$start = 'select ';
-		$end   = 'from leads';
-		$email = '';
-		$phone = '';
-		$name  = '';
-		$title = '';
-
-		if ($count > 0)
-		{
-			for ($i=0; $i < $count; $i++)
-			{ 
-				if ($i == ($count - 1))
-				{
-					if ($request->input('fileforp')[$i] == "email")
-					{
-						$email .= 'email as Email_Address';
-					}
-					elseif ($request->input('fileforp')[$i] == "phone")
-					{
-						$phone .= 'phone as Phone_Number';
-					}
-					elseif ($request->input('fileforp')[$i] == "name")
-					{
-						$name .= 'name as Name';
-					}
-					else
-					{
-						$title .= 'title as Title';
-					}
-				}
-				else
-				{
-					if ($request->input('fileforp')[$i] == "email")
-					{
-						$email .= 'email as Email_Address,';
-					}
-					elseif ($request->input('fileforp')[$i] == "phone")
-					{
-						$phone .= 'phone as Phone_Number,';
-					}
-					elseif ($request->input('fileforp')[$i] == "name")
-					{
-						$name .= 'name as Name,';
-					}
-					else
-					{
-						$title .= 'title as Title,';
-					}
-				}
-			}
-		}
-		else
-		{
-			return redirect()->back()->with('message', "To download, please select something from the options");
-		}
-
-		$result = $email.' '.$phone.' '.$name.' '.$title;
-
-		$logs = Lead::select(DB::raw($result))->get();
-
-        Excel::create('ScrapedData', function($excel) use($logs)
-        {
-            $excel->sheet('Sheet 1', function($sheet) use($logs)
-            {
-                $sheet->fromArray($logs);
-
-                $sheet->prependRow(1, array(
-                    'Report For : '.date("Y-M-d")
-                ));
-                
-                $sheet->mergeCells('A1:D1');
-            });
-        })->export('xls');
 	}
 
 	/**
@@ -182,8 +114,8 @@ class DataController extends Controller
 
 	public function getLinks($url)
 	{
-
-		$url = Url::findOrfail($url);
+		
+		$url = Lead::where('url_id', '=', $url)->get();
 		
 		return view('app.links', compact('url'));
 	}
@@ -266,7 +198,6 @@ class DataController extends Controller
 
 			return redirect()->back()->with('message', "Please check scrap data");
 		
-
 	}
 
 	/**
@@ -279,6 +210,29 @@ class DataController extends Controller
 		return view('app.data-list', compact('leads'));
 	}
 
+
+	/**
+	 * @return all link of that url
+	 */
+
+	public function getUrllinks($urlId){
+
+		$chkoption = unserialize(Url::find($urlId)->chkoption);
+
+		if (($key = array_search("emailChk", $chkoption)) !== FALSE) {
+				$chkoption[$key] = "email";
+    		}
+    	if (($key = array_search("nameChk", $chkoption)) !== FALSE) {
+				$chkoption[$key] = "name";
+    		}
+    	if (($key = array_search("phoneChk", $chkoption)) !== FALSE) {
+				$chkoption[$key] = "phone";
+    		}
+
+		$leads = Lead::where('url_id', '=', $urlId)->get();
+		
+		return view('app.ajax-link-list', compact('leads'));
+	}
 
 	/**
 	 * @return all data of that url
