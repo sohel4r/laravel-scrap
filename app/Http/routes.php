@@ -15,7 +15,7 @@
 //     return view('welcome');
 // });
 
-Route::get('data/scrapedDataDownload', "DataController@scrapedDataDownload");
+Route::post('data/scrapedDataDownload', "DataController@scrapedDataDownload");
 Route::controller('data', "DataController");
 // Route::controller('test', "TestController");
 // Route::get('tor', 'ScraperController@torNew');

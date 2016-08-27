@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use DB;
 use Excel;
 use App\Url;
 use Session;
@@ -91,41 +92,70 @@ class DataController extends Controller
 
 	public function scrapedDataDownload(Request $request)
 	{	
-		$downloadFor = $request->input('filefor');
-		
-		if ($downloadFor == "all")
+        $count = count($request->input('fileforp'));
+		$start = 'select ';
+		$end   = 'from leads';
+		$email = '';
+		$phone = '';
+		$name  = '';
+		$title = '';
+
+		if ($count > 0)
 		{
-			$logs = Lead::select('email as Email_Address', 'phone as Phone_Number', 'name as Name', 'title as Title')
-                            ->get();
-		}
-		elseif ($downloadFor == "email")
-		{
-			$logs = Lead::select('email as Email_Address')
-                            ->get();
-		}
-		elseif ($downloadFor == "phone")
-		{
-			$logs = Lead::select('phone as Phone_Number')
-                            ->get();
-		}
-		elseif ($downloadFor == "name")
-		{
-			$logs = Lead::select('name as Name')
-                            ->get();
-		}
-		elseif ($downloadFor == "title")
-		{
-			$logs = Lead::select('title as Title')
-                            ->get();
+			for ($i=0; $i < $count; $i++)
+			{ 
+				if ($i == ($count - 1))
+				{
+					if ($request->input('fileforp')[$i] == "email")
+					{
+						$email .= 'email as Email_Address';
+					}
+					elseif ($request->input('fileforp')[$i] == "phone")
+					{
+						$phone .= 'phone as Phone_Number';
+					}
+					elseif ($request->input('fileforp')[$i] == "name")
+					{
+						$name .= 'name as Name';
+					}
+					else
+					{
+						$title .= 'title as Title';
+					}
+				}
+				else
+				{
+					if ($request->input('fileforp')[$i] == "email")
+					{
+						$email .= 'email as Email_Address,';
+					}
+					elseif ($request->input('fileforp')[$i] == "phone")
+					{
+						$phone .= 'phone as Phone_Number,';
+					}
+					elseif ($request->input('fileforp')[$i] == "name")
+					{
+						$name .= 'name as Name,';
+					}
+					else
+					{
+						$title .= 'title as Title,';
+					}
+				}
+			}
 		}
 		else
 		{
-			return redirect()->back()->with('message', "This download link is broken, please try again later");
+			return redirect()->back()->with('message', "To download, please select something from the options");
 		}
 
-        Excel::create('ScrapedData', function($excel) use($logs,$downloadFor)
+		$result = $email.' '.$phone.' '.$name.' '.$title;
+
+		$logs = Lead::select(DB::raw($result))->get();
+
+        Excel::create('ScrapedData', function($excel) use($logs)
         {
-            $excel->sheet('Sheet 1', function($sheet) use($logs,$downloadFor)
+            $excel->sheet('Sheet 1', function($sheet) use($logs)
             {
                 $sheet->fromArray($logs);
 
