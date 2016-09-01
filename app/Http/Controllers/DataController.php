@@ -334,11 +334,12 @@ class DataController extends Controller
 		if($status=='blocked'){
 			\Log::info("Gaining new tor identity");
 			
-        	if(isset($tc->connected)) 
-
+        	if(isset($tc->connected)){
         		$tc->quit();
-        		check_ip();
-			}else{
+        		$this->check_ip();
+        		}
+			}
+			else{
 
 				return $ip;
 			}
