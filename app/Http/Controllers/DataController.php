@@ -305,12 +305,43 @@ class DataController extends Controller
 
 	public function helper_crawler($url)
 	{
+		$torip = $this->check_ip();
 
 		$agent= 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36';
 		$Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
 		
+		$options= ['proxy' => $torip];
+
 		$client = new Client(['HTTP_USER_AGENT' => $agent]);		
-		return  $client->request('GET', $url );			
+		return  $client->request('GET', $url, $options);			
 	}	
+
+	/**
+	 * @return check for IP
+	 */
+
+	public function check_ip(){
+		
+		$tc = (new ScraperController)->torNew();
+
+		$ip=\Request::ip();
+
+		$condition = array("open","blocked");
+		$key=array_rand($condition, 1);
+		$status = $condition[$key];
+
+		\Log::info($ip.":".$status);
+		if($status=='blocked'){
+			\Log::info("Gaining new tor identity");
+			
+        	if(isset($tc->connected)) 
+
+        		$tc->quit();
+        		check_ip();
+			}else{
+
+				return $ip;
+			}
+	}
 
 }
